@@ -100,61 +100,15 @@ var UUID = require('node-uuid');
 
 
   var dateParam = function(name){
-      return function (val, params, curr) {
+      return function(val, params, curr){
 
-      var newDate = text(val);
+       // Store as string - worst case scenario
+       storeParam(name)(val, undefined, curr)
 
-      if (params && params.indexOf('VALUE=DATE') > -1) {
-        // Just Date
+       curr[name] = require('moment-timezone').tz(val.toString(), (parseParams(params).TZID || '')).tz("UTC").toDate();
 
-        var comps = /^(\d{4})(\d{2})(\d{2})$/.exec(val);
-        if (comps !== null) {
-          // No TZ info - assume same timezone as this computer
-          newDate = new Date(
-            comps[1],
-            parseInt(comps[2], 10)-1,
-            comps[3]
-          );
-
-          newDate = addTZ(newDate, params);
-
-          // Store as string - worst case scenario
-          return storeValParam(name)(newDate, curr)
-        }
-      }
-
-
-      //typical RFC date-time format
-      var comps = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/.exec(val);
-      if (comps !== null) {
-        if (comps[7] == 'Z'){ // GMT
-          newDate = new Date(Date.UTC(
-            parseInt(comps[1], 10),
-            parseInt(comps[2], 10)-1,
-            parseInt(comps[3], 10),
-            parseInt(comps[4], 10),
-            parseInt(comps[5], 10),
-            parseInt(comps[6], 10 )
-          ));
-          // TODO add tz
-        } else {
-          newDate = new Date(
-            parseInt(comps[1], 10),
-            parseInt(comps[2], 10)-1,
-            parseInt(comps[3], 10),
-            parseInt(comps[4], 10),
-            parseInt(comps[5], 10),
-            parseInt(comps[6], 10)
-          );
-        }
-
-        newDate = addTZ(newDate, params);
-    }
-
-
-          // Store as string - worst case scenario
-      return storeValParam(name)(newDate, curr)
-      }
+       return addTZ(curr, name, params)
+     }
   }
 
 
