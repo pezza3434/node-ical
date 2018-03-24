@@ -140,10 +140,14 @@ var UUID = require('node-uuid');
   // i.e. You can check if ((curr.exdate != undefined) && (curr.exdate[date iso string] != undefined)) to see if a date is an exception.
   var exdateParam = function (name) {
       return function (val, params, curr) {
-          var exdate = new Array();
-          dateParam(name)(val, params, exdate);
-          curr[name] = curr[name] || [];
-          curr[name][exdate[name].toISOString()] = exdate[name];
+          var separatorPattern = /\s*,\s*/g;
+          var dates = val ? val.split(separatorPattern) : [];
+          dates.forEach(newVal => {
+              var exdate = new Array();
+              dateParam(name)(newVal, params, exdate);
+              curr[name] = curr[name] || [];
+              curr[name][exdate[name].toISOString()] = exdate[name];
+          });
           return curr;
       }
   }
