@@ -2,13 +2,13 @@ var ical = require('./ical')
   , request = require('request')
   , fs = require('fs')
 
-exports.fromURL = function(url, opts, cb){
+exports.fromURL = function(url, opts, defaultTimezone, cb){
   if (!cb)
     return;
   request(url, opts, function(err, r, data){
     if (err)
       return cb(err, null);
-    cb(undefined, ical.parseICS(data));
+    cb(undefined, ical.parseICS(data, defaultTimezone));
   })
 }
 
@@ -26,7 +26,7 @@ ical.objectHandlers['RRULE'] = function(val, params, curr, stack, line){
 var originalEnd = ical.objectHandlers['END'];
 ical.objectHandlers['END'] = function (val, params, curr, stack) {
 	// Recurrence rules are only valid for VEVENT, VTODO, and VJOURNAL.
-	// More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule 
+	// More specifically, we need to filter the VCALENDAR type because we might end up with a defined rrule
 	// due to the subtypes.
 	if ((val === "VEVENT") || (val === "VTODO") || (val === "VJOURNAL")) {
 		if (curr.rrule) {
