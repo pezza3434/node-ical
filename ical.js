@@ -1,5 +1,4 @@
 var UUID = require('node-uuid');
-var microsoftToValidTzid = require('./microsoftToValidTzid');
 var moment = require('moment-timezone');
 (function(name, definition) {
 
