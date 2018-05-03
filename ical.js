@@ -1,5 +1,6 @@
 var UUID = require('node-uuid');
-
+var microsoftToValidTzid = require('./microsoftToValidTzid');
+var moment = require('moment-timezone');
 (function(name, definition) {
 
 /****************
@@ -35,9 +36,9 @@ var UUID = require('node-uuid');
     for (var i = 0; i<p.length; i++){
       if (p[i].indexOf('=') > -1){
         var segs = p[i].split('=');
-        
+
         out[segs[0]] = parseValue(segs.slice(1).join('='));
-        
+
       }
     }
     return out || sp
@@ -46,7 +47,7 @@ var UUID = require('node-uuid');
   var parseValue = function(val){
     if ('TRUE' === val)
       return true;
-    
+
     if ('FALSE' === val)
       return false;
 
@@ -100,12 +101,21 @@ var UUID = require('node-uuid');
 
 
   var dateParam = function(name){
-      return function(val, params, curr){
+      var self = this;
+      return function(val, params, curr, irrelevant, irrelevant, defaultTimezone){
 
        // Store as string - worst case scenario
        storeParam(name)(val, undefined, curr)
 
-       curr[name] = require('moment-timezone').tz(val.toString(), (parseParams(params).TZID || '')).tz("UTC").toDate();
+       var timezone = parseParams(params).TZID;
+
+       var timezoneIsValid = moment.tz.zone(parseParams(params).TZID);
+
+       if (!timezoneIsValid) {
+           timezone = defaultTimezone || ''
+       }
+
+       curr[name] = moment.tz(val.toString(), timezone).tz("UTC").toDate();
 
        return addTZ(curr, name, params)
      }
@@ -188,6 +198,8 @@ var UUID = require('node-uuid');
 
   return {
 
+    defaultTimezone: false,
+
 
     objectHandlers : {
       'BEGIN' : function(component, params, curr, stack){
@@ -202,7 +214,7 @@ var UUID = require('node-uuid');
             //scan all high level object in curr and drop all strings
             var key,
                 obj;
-            
+
             for (key in curr) {
                 if(curr.hasOwnProperty(key)) {
                    obj = curr[key];
@@ -211,10 +223,10 @@ var UUID = require('node-uuid');
                    }
                 }
             }
-            
+
             return curr
         }
-        
+
         var par = stack.pop()
         if (curr.uid)
         {
@@ -260,7 +272,7 @@ var UUID = require('node-uuid');
         		// TODO:  Is there ever a case where we have to worry about overwriting an existing entry here?
 
         		// Create a copy of the current object to save in our recurrences array.  (We *could* just do par = curr,
-        		// except for the case that we get the RECURRENCE-ID record before the RRULE record.  In that case, we 
+        		// except for the case that we get the RECURRENCE-ID record before the RRULE record.  In that case, we
         		// would end up with a shared reference that would cause us to overwrite *both* records at the point
 				// that we try and fix up the parent record.)
         		var recurrenceObj = new Object();
@@ -320,11 +332,11 @@ var UUID = require('node-uuid');
     },
 
 
-    handleObject : function(name, val, params, ctx, stack, line){
+    handleObject : function(name, val, params, ctx, stack, line, defaultTimezone){
       var self = this
 
       if(self.objectHandlers[name])
-        return self.objectHandlers[name](val, params, ctx, stack, line)
+        return self.objectHandlers[name](val, params, ctx, stack, line, defaultTimezone)
 
       //handling custom properties
       if(name.match(/X\-[\w\-]+/) && stack.length > 0) {
@@ -332,13 +344,14 @@ var UUID = require('node-uuid');
           name = name.substring(2);
           return (storeParam(name))(val, params, ctx, stack, line);
       }
-      
+
       return storeParam(name.toLowerCase())(val, params, ctx);
     },
 
 
-    parseICS : function(str){
+    parseICS : function(str, defaultTimezone){
       var self = this
+      self.defaultTimezone = defaultTimezone;
       var lines = str.split(/\r?\n/)
       var ctx = {}
       var stack = []
@@ -363,7 +376,7 @@ var UUID = require('node-uuid');
           , name = kv[0]
           , params = kv[1]?kv[1].split(';').slice(1):[]
 
-        ctx = self.handleObject(name, value, params, ctx, stack, l) || {}
+        ctx = self.handleObject(name, value, params, ctx, stack, l, defaultTimezone) || {}
       }
 
        // type and params are added to the list of items, get rid of them.
