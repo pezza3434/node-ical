@@ -155,7 +155,7 @@ var moment = require('moment-timezone');
               var exdate = new Array();
               dateParam(name)(newVal, params, exdate);
               curr[name] = curr[name] || [];
-              curr[name][exdate[name].toISOString()] = exdate[name];
+              curr[name][exdate[name].toISOString().substring(0, 10)] = exdate[name];
           });
           return curr;
       }
@@ -291,7 +291,7 @@ var moment = require('moment-timezone');
             	}
 
 				// Save off our cloned recurrence object into the array, keyed by date.
-        		par[curr.uid].recurrences[curr.recurrenceid.toISOString()] = recurrenceObj;
+        		par[curr.uid].recurrences[curr.recurrenceid.toISOString().substring(0,10)] = recurrenceObj;
             }
 
         	// One more specific fix - in the case that an RRULE entry shows up after a RECURRENCE-ID entry,
