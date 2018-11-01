@@ -114,7 +114,12 @@ var moment = require('moment-timezone');
            timezone = defaultTimezone || ''
        }
 
-       curr[name] = moment.tz(val.toString(), timezone).tz("UTC").toDate();
+       //String and timezone left in purely for debugging purposes
+       curr[name] = {
+           momentTZ: moment.tz(val.toString(), timezone),
+           string: val.toString(),
+           timezone: timezone
+       }
 
        return addTZ(curr, name, params)
      }
@@ -148,14 +153,14 @@ var moment = require('moment-timezone');
   // The index into the array is the ISO string of the date itself, for ease of use.
   // i.e. You can check if ((curr.exdate != undefined) && (curr.exdate[date iso string] != undefined)) to see if a date is an exception.
   var exdateParam = function (name) {
-      return function (val, params, curr) {
+      return function (val, params, curr, nothing, nothing, timezone) {
           var separatorPattern = /\s*,\s*/g;
           var dates = val ? val.split(separatorPattern) : [];
           dates.forEach(newVal => {
               var exdate = new Array();
-              dateParam(name)(newVal, params, exdate);
+              dateParam(name)(newVal, params, exdate, nothing, nothing, timezone);
               curr[name] = curr[name] || [];
-              curr[name][exdate[name].toISOString().substring(0, 10)] = exdate[name];
+              curr[name][exdate[name].momentTZ.toISOString()] = exdate[name];
           });
           return curr;
       }
@@ -291,7 +296,7 @@ var moment = require('moment-timezone');
             	}
 
 				// Save off our cloned recurrence object into the array, keyed by date.
-        		par[curr.uid].recurrences[curr.recurrenceid.toISOString().substring(0,10)] = recurrenceObj;
+        		par[curr.uid].recurrences[curr.recurrenceid.momentTZ.toISOString()] = recurrenceObj;
             }
 
         	// One more specific fix - in the case that an RRULE entry shows up after a RECURRENCE-ID entry,
