@@ -45,6 +45,14 @@ ical.objectHandlers['END'] = function (val, params, curr, stack, dontcare, timez
 				rule += ';DTSTART;TZID=' + curr.start.timezone + ':' + curr.start.momentTZ.format('YYYY-MM-DD[T]HHmmss[Z]').replace(/[-:]/g, '');
 				rule = rule.replace(/\.[0-9]{3}/, '');
 			}
+
+            // Change the until timezone for rrule. https://github.com/jakubroztocil/rrule/issues/331
+            const regexForUTCUNTILTimeWeExpect = /UNTIL=\d{8}T\d{6}Z/;
+            if (curr.start.timezone && regexForUTCUNTILTimeWeExpect.test(rule)) {
+                const match = rule.match(/UNTIL=(.+?)(?=Z)/);
+                const newUNTILTime = moment.tz(match[1], 'utc').tz(curr.start.timezone).format('YYYYMMDD[T]HHmmss');
+                rule = rule.replace(/(.*)(UNTIL=)(.+?(?=Z))(.*)/, "$1$2" + newUNTILTime + "$4");
+            }
 			curr.rrule = rrule.fromString(rule);
 		}
 	}
