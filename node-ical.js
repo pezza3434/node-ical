@@ -2,6 +2,8 @@ var ical = require('./ical')
   , request = require('request')
   , fs = require('fs')
 
+var moment = require('moment-timezone');  
+
 exports.fromURL = function(url, opts, defaultTimezone, cb){
   if (!cb)
     return;
