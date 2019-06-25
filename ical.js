@@ -1,5 +1,7 @@
 var UUID = require('node-uuid');
 var moment = require('moment-timezone');
+const { isValidWithLuxor, suggestAlternativeTimezone } = require('luxon-timezone-validator');
+
 (function(name, definition) {
 
 /****************
@@ -106,19 +108,20 @@ var moment = require('moment-timezone');
        // Store as string - worst case scenario
        storeParam(name)(val, undefined, curr)
 
-       var timezone = parseParams(params).TZID;
+       var timezoneFromEvent = parseParams(params).TZID;
 
-       var timezoneIsValid = moment.tz.zone(parseParams(params).TZID);
+       // Need to make sure the timezone is valid with the Luxon library because this is what rrule uses
+       var luxonValidTimezone = isValidWithLuxor(timezoneFromEvent) || suggestAlternativeTimezone(timezoneFromEvent);
 
-       if (!timezoneIsValid) {
-           timezone = defaultTimezone || ''
+       if (!luxonValidTimezone) {
+           luxonValidTimezone = defaultTimezone || ''
        }
 
        //String and timezone left in purely for debugging purposes
        curr[name] = {
-           momentTZ: moment.tz(val.toString(), timezone),
+           momentTZ: moment.tz(val.toString(), luxonValidTimezone),
            string: val.toString(),
-           timezone: timezone
+           timezone: luxonValidTimezone
        }
 
        return addTZ(curr, name, params)
